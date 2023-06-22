@@ -84,10 +84,10 @@ class PluginSonolush: public SonolusServerPlugin {
         return "C++ based Developer Toolkit for Sonolus";
     }
     string onPluginVersion() const {
-        return "1.0.0";
+        return "v1.0.0-alpha-0.7.0";
     }
     string onPluginPlatformVersion() const {
-        return "1.3.0";
+        return "1.4.2";
     }
     string onPluginAuthor() const {
         return "LittleYang0531";
