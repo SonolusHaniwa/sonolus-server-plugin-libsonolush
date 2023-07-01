@@ -87,7 +87,7 @@ class PluginSonolush: public SonolusServerPlugin {
         return "v1.0.0-alpha-0.7.0";
     }
     string onPluginPlatformVersion() const {
-        return "1.4.2";
+        return sonolus_server_version;
     }
     string onPluginAuthor() const {
         return "LittleYang0531";
