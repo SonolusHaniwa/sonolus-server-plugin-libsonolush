@@ -15,11 +15,6 @@ void initCustomEngine(char** argv) {
     copyFolder("./plugins/libsonolush/source", root_dir);
 }
 
-bool fileExist(string path) {
-    ifstream fin(path.c_str());
-    return fin.is_open();
-}
-
 string uploadFile(string path) {
     ifstream fin(path.c_str());
     fin.seekg(0, ios::end);
