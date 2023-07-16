@@ -1,10 +1,16 @@
 {
   "name": "sonolus-test-engine",
-  "title": "",
-  "subtitle": "",
-  "author": "",
-  "skin": "",
-  "background": "",
-  "effect": "",
-  "particle": ""
+  "i18n": [
+    {
+      "localization": "default",
+      "title": "",
+      "subtitle": "",
+      "author": "",
+      "skin": "",
+      "background": "",
+      "effect": "",
+      "particle": "",
+      "description": ""
+    }
+  ]
 }

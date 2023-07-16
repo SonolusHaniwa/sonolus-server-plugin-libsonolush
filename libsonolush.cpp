@@ -45,28 +45,32 @@ void initBuild(int argc, char** argv) {
     preload();
     string package_json = readFile((path + "/package.json").c_str());
     Json::Value arr; json_decode(package_json, arr);
-    SkinItem skin; BackgroundItem background; EffectItem effect; ParticleItem particle;
-    auto tmp = skinList("name = \"" + arr["skin"].asString() + "\"");
-    if (tmp.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find skin \"" + arr["skin"].asString() + "\""), exit(0);
-    skin = tmp.items[0];
-    auto tmp2 = backgroundList("name = \"" + arr["background"].asString() + "\"");
-    if (tmp2.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find background \"" + arr["background"].asString() + "\""), exit(0);
-    background = tmp2.items[0];
-    auto tmp3 = effectList("name = \"" + arr["effect"].asString() + "\"");
-    if (tmp3.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find effect \"" + arr["effect"].asString() + "\""), exit(0);
-    effect = tmp3.items[0];
-    auto tmp4 = particleList("name = \"" + arr["particle"].asString() + "\"");
-    if (tmp4.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find particle \"" + arr["particle"].asString() + "\""), exit(0);
-    particle = tmp4.items[0];
 
     string engineData = uploadFile((path + "/dist/EngineData").c_str());
     string engineConfiguration = uploadFile((path + "/dist/EngineConfiguration").c_str());
     string engineThumbnail = fileExist((path + "/dist/thumbnail.jpg").c_str()) ?
         uploadFile((path + "/dist/thumbnail.jpg").c_str()) : uploadFile((path + "/dist/thumbnail.png").c_str()); 
 
-    engineCreate(EngineItem(-1, arr["name"].asString(), arr["title"].asString(), arr["subtitle"].asString(), arr["author"].asString(), 
-        skin, background, effect, particle, SRL<EngineThumbnail>(engineThumbnail, ""), SRL<EngineData>(engineData, ""), 
-        SRL<EngineConfiguration>(engineConfiguration, ""), SRL<EngineRom>("", "")), true);
+    for (int i = 0; i < arr["i18n"].size(); i++) {
+        auto item = arr["i18n"][i];
+        SkinItem skin; BackgroundItem background; EffectItem effect; ParticleItem particle;
+        auto tmp = skinList("name = \"" + item["skin"].asString() + "\"");
+        if (tmp.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find skin \"" + item["skin"].asString() + "\""), exit(0);
+        skin = tmp.items[0];
+        auto tmp2 = backgroundList("name = \"" + item["background"].asString() + "\"");
+        if (tmp2.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find background \"" + item["background"].asString() + "\""), exit(0);
+        background = tmp2.items[0];
+        auto tmp3 = effectList("name = \"" + item["effect"].asString() + "\"");
+        if (tmp3.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find effect \"" + item["effect"].asString() + "\""), exit(0);
+        effect = tmp3.items[0];
+        auto tmp4 = particleList("name = \"" + item["particle"].asString() + "\"");
+        if (tmp4.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find particle \"" + item["particle"].asString() + "\""), exit(0);
+        particle = tmp4.items[0];
+        engineCreate(EngineItem(-1, arr["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(), 
+            skin, background, effect, particle, SRL<EngineThumbnail>(engineThumbnail, ""), SRL<EngineData>(engineData, ""), 
+            SRL<EngineConfiguration>(engineConfiguration, ""), SRL<EngineRom>("", ""), item["description"].asString()), item["localization"].asString());    
+    }
+    
 }
 
 class PluginSonolush: public SonolusServerPlugin {
