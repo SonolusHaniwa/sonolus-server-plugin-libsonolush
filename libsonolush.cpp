@@ -48,6 +48,7 @@ void initBuild(int argc, char** argv) {
 
     string engineData = uploadFile((path + "/dist/EngineData").c_str());
     string engineConfiguration = uploadFile((path + "/dist/EngineConfiguration").c_str());
+	string engineTutorialData = uploadFile((path + "/dist/EngineTutorialData").c_str());
     string engineThumbnail = fileExist((path + "/dist/thumbnail.jpg").c_str()) ?
         uploadFile((path + "/dist/thumbnail.jpg").c_str()) : uploadFile((path + "/dist/thumbnail.png").c_str()); 
 
@@ -68,7 +69,7 @@ void initBuild(int argc, char** argv) {
         particle = tmp4.items[0];
         engineCreate(EngineItem(-1, arr["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(), 
             skin, background, effect, particle, SRL<EngineThumbnail>(engineThumbnail, ""), SRL<EngineData>(engineData, ""), 
-            SRL<EngineConfiguration>(engineConfiguration, ""), SRL<EngineRom>("", ""), item["description"].asString()), item["localization"].asString());    
+            SRL<EngineConfiguration>(engineConfiguration, ""), SRL<EngineRom>("", ""), {engineTutorialData, ""}, item["description"].asString()), item["localization"].asString());
     }
     
 }
@@ -83,7 +84,7 @@ class PluginSonolush: public SonolusServerPlugin {
         return "C++ based Developer Toolkit for Sonolus";
     }
     string onPluginVersion() const {
-        return "v1.0.0-alpha-0.7.0";
+        return "v1.0.1";
     }
     string onPluginPlatformVersion() const {
         return sonolus_server_version;
