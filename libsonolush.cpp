@@ -103,7 +103,7 @@ class PluginSonolush: public SonolusServerPlugin {
     vector<string> onPluginHelp(char** argv) const {
         return {
             "Sonolus.h init: " + string(argv[0]) + " initcpp [name]",
-            "Sonolus.h build: " + string(argv[0]) + " buildcpp [name] <play/tutorial> [args]"
+            "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial> [name] [args]"
         };
     }
     void onPluginRunner(int argc, char** argv) const {
