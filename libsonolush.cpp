@@ -19,6 +19,7 @@ string uploadFile(string path) {
     ifstream fin(path.c_str());
     fin.seekg(0, ios::end);
     int len = fin.tellg();
+    if (len == -1) return "";
     fin.seekg(0, ios::beg);
     char* filePointerBeg = new char[len];
     fin.read(filePointerBeg, len);
@@ -33,11 +34,12 @@ string uploadFile(string path) {
 }
 
 void initBuild(int argc, char** argv) {
-    string path = argv[2]; string extendCommand = "";
-    for (int i = 3; i < argc; i++) extendCommand += " " + string(argv[i]);
+    string path = argv[3], type = argv[2]; string extendCommand = "";
+    for (int i = 4; i < argc; i++) extendCommand += " " + string(argv[i]);
     stringstream command;
     command << "cd \"" << path << "\"";
-    command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz " << extendCommand;
+    command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz "
+            << (type == "play" ? "-Dplay" : "-Dtutorial") << " " << extendCommand;
     command << " && ./main";
     int res = system(command.str().c_str());
     if (res) exit(3);
@@ -84,7 +86,7 @@ class PluginSonolush: public SonolusServerPlugin {
         return "C++ based Developer Toolkit for Sonolus";
     }
     string onPluginVersion() const {
-        return "v1.0.1";
+        return "v1.1.0";
     }
     string onPluginPlatformVersion() const {
         return sonolus_server_version;
@@ -101,7 +103,7 @@ class PluginSonolush: public SonolusServerPlugin {
     vector<string> onPluginHelp(char** argv) const {
         return {
             "Sonolus.h init: " + string(argv[0]) + " initcpp [name]",
-            "Sonolus.h build: " + string(argv[0]) + " buildcpp [name] [args]"
+            "Sonolus.h build: " + string(argv[0]) + " buildcpp [name] <play/tutorial> [args]"
         };
     }
     void onPluginRunner(int argc, char** argv) const {
@@ -110,7 +112,7 @@ class PluginSonolush: public SonolusServerPlugin {
             initCustomEngine(argv);
             exit(0);
         } else if (string(argv[1]) == "buildcpp") {
-            if (argc < 3) return;
+            if (argc < 4) return;
             initBuild(argc, argv);
             serverRunner(argc, argv);
             exit(0);

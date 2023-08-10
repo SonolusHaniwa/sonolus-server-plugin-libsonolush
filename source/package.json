@@ -3,14 +3,14 @@
   "i18n": [
     {
       "localization": "default",
-      "title": "",
-      "subtitle": "",
-      "author": "",
+      "title": "Test",
+      "subtitle": "Sonolus Test Engine",
+      "author": "Test",
       "skin": "",
       "background": "",
       "effect": "",
       "particle": "",
-      "description": ""
+      "description": "Sonolus Test Engine"
     }
   ]
 }
