@@ -38,8 +38,10 @@ void initBuild(int argc, char** argv) {
     for (int i = 4; i < argc; i++) extendCommand += " " + string(argv[i]);
     stringstream command;
     command << "cd \"" << path << "\"";
+	command << " && echo Compiling engine \"" << path << "\"...";
     command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz "
-            << (type == "play" ? "-Dplay" : "-Dtutorial") << " " << extendCommand;
+            << (type == "play" ? "-Dplay" : (type == "tutorial" ? "-Dtutorial" : "-Dpreview")) << " " << extendCommand;
+	command << " && echo Running scripts...";
     command << " && ./main";
     int res = system(command.str().c_str());
     if (res) exit(3);
@@ -51,6 +53,7 @@ void initBuild(int argc, char** argv) {
     string engineData = uploadFile((path + "/dist/EngineData").c_str());
     string engineConfiguration = uploadFile((path + "/dist/EngineConfiguration").c_str());
 	string engineTutorialData = uploadFile((path + "/dist/EngineTutorialData").c_str());
+	string enginePreviewData = uploadFile((path + "/dist/EnginePreviewData").c_str());
     string engineThumbnail = fileExist((path + "/dist/thumbnail.jpg").c_str()) ?
         uploadFile((path + "/dist/thumbnail.jpg").c_str()) : uploadFile((path + "/dist/thumbnail.png").c_str()); 
 
@@ -70,8 +73,8 @@ void initBuild(int argc, char** argv) {
         if (tmp4.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find particle \"" + item["particle"].asString() + "\""), exit(0);
         particle = tmp4.items[0];
         engineCreate(EngineItem(-1, arr["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(), 
-            skin, background, effect, particle, SRL<EngineThumbnail>(engineThumbnail, ""), SRL<EngineData>(engineData, ""), 
-            SRL<EngineConfiguration>(engineConfiguration, ""), SRL<EngineRom>("", ""), {engineTutorialData, ""}, item["description"].asString()), item["localization"].asString());
+            skin, background, effect, particle, SRL<EngineThumbnail>(engineThumbnail, ""), SRL<EngineData>(engineData, ""), SRL<EngineTutorialData>(engineTutorialData, ""), SRL<EnginePreviewData>(enginePreviewData, ""), 
+            SRL<EngineConfiguration>(engineConfiguration, ""), SRL<EngineRom>("", ""), item["description"].asString()), item["localization"].asString());
     }
     
 }
@@ -86,7 +89,7 @@ class PluginSonolush: public SonolusServerPlugin {
         return "C++ based Developer Toolkit for Sonolus";
     }
     string onPluginVersion() const {
-        return "v1.1.0";
+        return "1.1.0";
     }
     string onPluginPlatformVersion() const {
         return sonolus_server_version;
@@ -103,7 +106,7 @@ class PluginSonolush: public SonolusServerPlugin {
     vector<string> onPluginHelp(char** argv) const {
         return {
             "Sonolus.h init: " + string(argv[0]) + " initcpp [name]",
-            "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial> [name] [args]"
+            "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial/preview> [name] [args]"
         };
     }
     void onPluginRunner(int argc, char** argv) const {
