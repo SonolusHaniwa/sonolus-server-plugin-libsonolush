@@ -38,10 +38,15 @@ void initBuild(int argc, char** argv) {
     for (int i = 4; i < argc; i++) extendCommand += " " + string(argv[i]);
     stringstream command;
     command << "cd \"" << path << "\"";
-	command << " && echo Compiling engine \"" << path << "\"...";
-    command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz "
-            << (type == "play" ? "-Dplay" : (type == "tutorial" ? "-Dtutorial" : "-Dpreview")) << " " << extendCommand;
-	command << " && echo Running scripts...";
+	command << " && echo [INFO] Compiling " << (type == "particle" ? "particle" : "engine") << " \"" << path << "\"...";
+    command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz ";
+	if (type == "play") command << "-Dplay";
+	else if (type == "tutorial") command << "-Dtutorial";
+	else if (type == "preview") command << "-Dpreview";
+	else if (type == "particle") command << "-Dparticle";
+	else throw runtime_error("Unknown Compilation Type");
+	command << " " << extendCommand;
+	command << " && echo [INFO] Running scripts...";
     command << " && ./main";
     int res = system(command.str().c_str());
     if (res) exit(3);
@@ -56,9 +61,13 @@ void initBuild(int argc, char** argv) {
 	string enginePreviewData = uploadFile((path + "/dist/EnginePreviewData").c_str());
     string engineThumbnail = fileExist((path + "/dist/thumbnail.jpg").c_str()) ?
         uploadFile((path + "/dist/thumbnail.jpg").c_str()) : uploadFile((path + "/dist/thumbnail.png").c_str()); 
+	string particleThumbnail = fileExist((path + "/dist/particleThumbnail.jpg").c_str()) ?
+		uploadFile((path + "/dist/particleThumbnail.jpg").c_str()) : uploadFile((path + "/dist/particleThumbnail.png").c_str());
+	string particleData = uploadFile((path + "/dist/ParticleData").c_str());
+	string particleTexture = uploadFile((path + "/dist/ParticleTexture").c_str());
 
-    for (int i = 0; i < arr["i18n"].size(); i++) {
-        auto item = arr["i18n"][i];
+    if (arr["engine"]["name"].asString() != "") for (int i = 0; i < arr["engine"]["i18n"].size(); i++) {
+        auto item = arr["engine"]["i18n"][i];
         SkinItem skin; BackgroundItem background; EffectItem effect; ParticleItem particle;
         auto tmp = skinList("name = \"" + item["skin"].asString() + "\"");
         if (tmp.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find skin \"" + item["skin"].asString() + "\""), exit(0);
@@ -72,11 +81,16 @@ void initBuild(int argc, char** argv) {
         auto tmp4 = particleList("name = \"" + item["particle"].asString() + "\"");
         if (tmp4.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find particle \"" + item["particle"].asString() + "\""), exit(0);
         particle = tmp4.items[0];
-        engineCreate(EngineItem(-1, arr["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(), 
+        engineCreate(EngineItem(-1, arr["engine"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(), 
             skin, background, effect, particle, SRL<EngineThumbnail>(engineThumbnail, ""), SRL<EngineData>(engineData, ""), SRL<EngineTutorialData>(engineTutorialData, ""), SRL<EnginePreviewData>(enginePreviewData, ""), 
             SRL<EngineConfiguration>(engineConfiguration, ""), SRL<EngineRom>("", ""), item["description"].asString()), item["localization"].asString());
     }
-    
+
+	if (arr["particle"]["name"].asString() != "") for (int i = 0; i < arr["particle"]["i18n"].size(); i++) {
+		auto item = arr["particle"]["i18n"][i];
+		particleCreate(ParticleItem(-1, arr["particle"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
+			SRL<ParticleThumbnail>(particleThumbnail, ""), SRL<ParticleData>(particleData, ""), SRL<ParticleTexture>(particleTexture, ""), item["description"].asString()), item["localization"].asString());
+	}
 }
 
 class PluginSonolush: public SonolusServerPlugin {
@@ -89,7 +103,7 @@ class PluginSonolush: public SonolusServerPlugin {
         return "C++ based Developer Toolkit for Sonolus";
     }
     string onPluginVersion() const {
-        return "1.1.0";
+        return "0.7.3";
     }
     string onPluginPlatformVersion() const {
         return sonolus_server_version;
@@ -106,7 +120,7 @@ class PluginSonolush: public SonolusServerPlugin {
     vector<string> onPluginHelp(char** argv) const {
         return {
             "Sonolus.h init: " + string(argv[0]) + " initcpp [name]",
-            "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial/preview> [name] [args]"
+            "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial/preview/particle> [name] [args]"
         };
     }
     void onPluginRunner(int argc, char** argv) const {
