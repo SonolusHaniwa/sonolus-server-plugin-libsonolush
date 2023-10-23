@@ -39,7 +39,7 @@ void initBuild(int argc, char** argv) {
     stringstream command;
     command << "cd \"" << path << "\"";
 	command << " && echo [INFO] Compiling " << (type == "particle" ? "particle" : "engine") << " \"" << path << "\"...";
-    command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz ";
+    command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng ";
 	if (type == "play") command << "-Dplay";
 	else if (type == "tutorial") command << "-Dtutorial";
 	else if (type == "preview") command << "-Dpreview";
