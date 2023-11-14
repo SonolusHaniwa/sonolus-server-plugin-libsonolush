@@ -33,6 +33,19 @@ string uploadFile(string path) {
     return buffer.str();
 }
 
+string getFileSize(string path) {
+	ifstream fin(path.c_str());
+	fin.seekg(0, ios::end);
+	double size = fin.tellg();
+	stringstream ss;
+	if (size < 2048) ss << fixed << setprecision(3) << "(" << size << "B)";
+	else { size /= 1024.0; if (size < 2048) ss << fixed << setprecision(3) << "(" << size << "KB)";
+	else { size /= 1024.0; if (size < 2048) ss << fixed << setprecision(3) << "(" << size << "MB)";
+	else { size /= 1024.0; if (size < 2048) ss << fixed << setprecision(3) << "(" << size << "GB)";
+	else { size /= 1024.0; ss << fixed << setprecision(3) << "(" << size << "TB)"; }}}}
+	return ss.str();
+}
+
 void initBuild(int argc, char** argv) {
     string path = argv[3], type = argv[2]; string extendCommand = "";
     for (int i = 4; i < argc; i++) extendCommand += " " + string(argv[i]);
@@ -43,6 +56,7 @@ void initBuild(int argc, char** argv) {
 	if (type == "play") command << "-Dplay";
 	else if (type == "tutorial") command << "-Dtutorial";
 	else if (type == "preview") command << "-Dpreview";
+	else if (type == "watch") command << "-Dwatch";
 	else if (type == "particle") command << "-Dparticle";
 	else throw runtime_error("Unknown Compilation Type");
 	command << " " << extendCommand;
@@ -56,15 +70,42 @@ void initBuild(int argc, char** argv) {
     Json::Value arr; json_decode(package_json, arr);
 
     string engineData = uploadFile((path + "/dist/EngineData").c_str());
+	string engineDataSize = getFileSize((path + "/dist/EngineData").c_str());
     string engineConfiguration = uploadFile((path + "/dist/EngineConfiguration").c_str());
+	string engineConfigurationSize = getFileSize((path + "/dist/EngineConfiguration").c_str());
 	string engineTutorialData = uploadFile((path + "/dist/EngineTutorialData").c_str());
+	string engineTutorialDataSize = getFileSize((path + "/dist/EngineTutorialData").c_str());
 	string enginePreviewData = uploadFile((path + "/dist/EnginePreviewData").c_str());
+	string enginePreviewDataSize = getFileSize((path + "/dist/EnginePreviewData").c_str());
+	string engineWatchData = uploadFile((path + "/dist/EngineWatchData").c_str());
+	string engineWatchDataSize = getFileSize((path + "/dist/EngineWatchData").c_str());
     string engineThumbnail = fileExist((path + "/dist/thumbnail.jpg").c_str()) ?
-        uploadFile((path + "/dist/thumbnail.jpg").c_str()) : uploadFile((path + "/dist/thumbnail.png").c_str()); 
+        uploadFile((path + "/dist/thumbnail.jpg").c_str()) : uploadFile((path + "/dist/thumbnail.png").c_str());
+	string engineThumbnailSize = fileExist((path + "/dist/thumbnail.jpg").c_str()) ?
+		getFileSize((path + "/dist/thumbnail.jpg").c_str()) : getFileSize((path + "/dist/thumbnail.png").c_str());
+
 	string particleThumbnail = fileExist((path + "/dist/particleThumbnail.jpg").c_str()) ?
 		uploadFile((path + "/dist/particleThumbnail.jpg").c_str()) : uploadFile((path + "/dist/particleThumbnail.png").c_str());
+	string particleThumbnailSize = fileExist((path + "/dist/particleThumbnail.jpg").c_str()) ?
+		getFileSize((path + "/dist/particleThumbnail.jpg").c_str()) : getFileSize((path + "/dist/particleThumbnail.png").c_str());
 	string particleData = uploadFile((path + "/dist/ParticleData").c_str());
+	string particleDataSize = getFileSize((path + "/dist/ParticleData").c_str());
 	string particleTexture = uploadFile((path + "/dist/ParticleTexture").c_str());
+	string particleTextureSize = getFileSize((path + "/dist/ParticleTexture").c_str());
+
+	cout << "===========================================" << endl
+		 << "Collected Resource Info: " << endl
+		 << endl
+		 << "Engine Thumbnail: " << engineThumbnail << engineThumbnailSize << endl
+		 << "Engine Play Data: " << engineData << engineDataSize << endl
+		 << "Engine Tutorial Data: " << engineTutorialData << engineTutorialDataSize << endl
+		 << "Engine Preview Data: " << enginePreviewData << enginePreviewDataSize << endl
+		 << "Engine Watch Data: " << engineWatchData << engineWatchDataSize << endl
+		 << endl
+		 << "Particle Thumbnail: " << particleThumbnail << particleThumbnailSize << endl
+		 << "Particle Data: " << particleData << particleDataSize << endl
+		 << "Particle Texture: " << particleTexture << particleTextureSize << endl
+		 << "===========================================" << endl;
 
     if (arr["engine"]["name"].asString() != "") for (int i = 0; i < arr["engine"]["i18n"].size(); i++) {
         auto item = arr["engine"]["i18n"][i];
@@ -82,7 +123,7 @@ void initBuild(int argc, char** argv) {
         if (tmp4.items.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find particle \"" + item["particle"].asString() + "\""), exit(0);
         particle = tmp4.items[0];
         engineCreate(EngineItem(-1, arr["engine"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(), 
-            skin, background, effect, particle, SRL<EngineThumbnail>(engineThumbnail, ""), SRL<EngineData>(engineData, ""), SRL<EngineTutorialData>(engineTutorialData, ""), SRL<EnginePreviewData>(enginePreviewData, ""), 
+            skin, background, effect, particle, SRL<EngineThumbnail>(engineThumbnail, ""), SRL<EngineData>(engineData, ""), SRL<EngineTutorialData>(engineTutorialData, ""), SRL<EnginePreviewData>(enginePreviewData, ""), SRL<EngineWatchData>(engineWatchData, ""),
             SRL<EngineConfiguration>(engineConfiguration, ""), SRL<EngineRom>("", ""), item["description"].asString()), item["localization"].asString());
     }
 
@@ -103,7 +144,7 @@ class PluginSonolush: public SonolusServerPlugin {
         return "C++ based Developer Toolkit for Sonolus";
     }
     string onPluginVersion() const {
-        return "0.7.3";
+        return "0.7.4";
     }
     string onPluginPlatformVersion() const {
         return sonolus_server_version;
@@ -120,7 +161,7 @@ class PluginSonolush: public SonolusServerPlugin {
     vector<string> onPluginHelp(char** argv) const {
         return {
             "Sonolus.h init: " + string(argv[0]) + " initcpp [name]",
-            "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial/preview/particle> [name] [args]"
+            "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial/preview/watch/particle> [name] [args]"
         };
     }
     void onPluginRunner(int argc, char** argv) const {
