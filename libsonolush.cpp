@@ -57,7 +57,7 @@ void initBuild(int argc, char** argv) {
 	else if (type == "tutorial") command << "-Dtutorial";
 	else if (type == "preview") command << "-Dpreview";
 	else if (type == "watch") command << "-Dwatch";
-	else if (type == "particle") command << "-Dparticle";
+	// else if (type == "particle") command << "-Dparticle";
 	else throw runtime_error("Unknown Compilation Type");
 	command << " " << extendCommand;
 	command << " && echo [INFO] Running scripts...";
@@ -84,10 +84,15 @@ void initBuild(int argc, char** argv) {
 	string engineThumbnailSize = fileExist((path + "/dist/thumbnail.jpg").c_str()) ?
 		getFileSize((path + "/dist/thumbnail.jpg").c_str()) : getFileSize((path + "/dist/thumbnail.png").c_str());
 
-	string particleThumbnail = fileExist((path + "/dist/particleThumbnail.jpg").c_str()) ?
-		uploadFile((path + "/dist/particleThumbnail.jpg").c_str()) : uploadFile((path + "/dist/particleThumbnail.png").c_str());
-	string particleThumbnailSize = fileExist((path + "/dist/particleThumbnail.jpg").c_str()) ?
-		getFileSize((path + "/dist/particleThumbnail.jpg").c_str()) : getFileSize((path + "/dist/particleThumbnail.png").c_str());
+	string skinThumbnail = engineThumbnail;
+	string skinThumbnailSize = engineThumbnailSize;
+	string skinData = uploadFile((path + "/dist/SkinData").c_str());
+	string skinDataSize = getFileSize((path + "/dist/SkinData").c_str());
+	string skinTexture = uploadFile((path + "/dist/SkinTexture").c_str());
+	string skinTextureSize = getFileSize((path + "/dist/SkinTexture").c_str());
+
+	string particleThumbnail = engineThumbnail;
+	string particleThumbnailSize = engineThumbnailSize;
 	string particleData = uploadFile((path + "/dist/ParticleData").c_str());
 	string particleDataSize = getFileSize((path + "/dist/ParticleData").c_str());
 	string particleTexture = uploadFile((path + "/dist/ParticleTexture").c_str());
@@ -101,6 +106,10 @@ void initBuild(int argc, char** argv) {
 		 << "Engine Tutorial Data: " << engineTutorialData << engineTutorialDataSize << endl
 		 << "Engine Preview Data: " << enginePreviewData << enginePreviewDataSize << endl
 		 << "Engine Watch Data: " << engineWatchData << engineWatchDataSize << endl
+		 << endl
+		 << "Skin Thumbnail: " << skinThumbnail << skinThumbnailSize << endl
+		 << "Skin Data: " << skinData << skinDataSize << endl
+		 << "Skin Texture: " << skinTexture << skinTextureSize << endl
 		 << endl
 		 << "Particle Thumbnail: " << particleThumbnail << particleThumbnailSize << endl
 		 << "Particle Data: " << particleData << particleDataSize << endl
@@ -127,6 +136,12 @@ void initBuild(int argc, char** argv) {
             SRL<EngineConfiguration>(engineConfiguration, ""), SRL<EngineRom>("", ""), item["description"].asString()), item["localization"].asString());
     }
 
+	if (arr["skin"]["name"].asString() != "") for (int i = 0; i < arr["skin"]["i18n"].size(); i++) {
+			auto item = arr["skin"]["i18n"][i];
+			skinCreate(SkinItem(-1, arr["skin"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
+				SRL<SkinThumbnail>(skinThumbnail, ""), SRL<SkinData>(skinData, ""), SRL<SkinTexture>(skinTexture, ""), item["description"].asString()), item["localization"].asString());
+		}
+	
 	if (arr["particle"]["name"].asString() != "") for (int i = 0; i < arr["particle"]["i18n"].size(); i++) {
 		auto item = arr["particle"]["i18n"][i];
 		particleCreate(ParticleItem(-1, arr["particle"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
@@ -161,7 +176,7 @@ class PluginSonolush: public SonolusServerPlugin {
     vector<string> onPluginHelp(char** argv) const {
         return {
             "Sonolus.h init: " + string(argv[0]) + " initcpp [name]",
-            "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial/preview/watch/particle> [name] [args]"
+            "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial/preview/watch> [name] [args]"
         };
     }
     void onPluginRunner(int argc, char** argv) const {
