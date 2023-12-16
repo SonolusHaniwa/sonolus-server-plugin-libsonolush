@@ -52,7 +52,7 @@ void initBuild(int argc, char** argv) {
     stringstream command;
     command << "cd \"" << path << "\"";
 	command << " && echo [INFO] Compiling " << (type == "particle" ? "particle" : "engine") << " \"" << path << "\"...";
-    command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng ";
+    command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng -lzip ";
 	if (type == "play") command << "-Dplay";
 	else if (type == "tutorial") command << "-Dtutorial";
 	else if (type == "preview") command << "-Dpreview";
@@ -91,6 +91,13 @@ void initBuild(int argc, char** argv) {
 	string skinTexture = uploadFile((path + "/dist/SkinTexture").c_str());
 	string skinTextureSize = getFileSize((path + "/dist/SkinTexture").c_str());
 
+    string effectThumbnail = engineThumbnail;
+	string effectThumbnailSize = engineThumbnailSize;
+	string effectData = uploadFile((path + "/dist/EffectData").c_str());
+	string effectDataSize = getFileSize((path + "/dist/EffectData").c_str());
+	string effectAudio = uploadFile((path + "/dist/EffectAudio").c_str());
+	string effectAudioSize = getFileSize((path + "/dist/EffectAudio").c_str());
+
 	string particleThumbnail = engineThumbnail;
 	string particleThumbnailSize = engineThumbnailSize;
 	string particleData = uploadFile((path + "/dist/ParticleData").c_str());
@@ -110,6 +117,10 @@ void initBuild(int argc, char** argv) {
 		 << "Skin Thumbnail: " << skinThumbnail << skinThumbnailSize << endl
 		 << "Skin Data: " << skinData << skinDataSize << endl
 		 << "Skin Texture: " << skinTexture << skinTextureSize << endl
+		 << endl
+		 << "Effect Thumbnail: " << effectThumbnail << effectThumbnailSize << endl
+		 << "Effect Data: " << effectData << effectDataSize << endl
+		 << "Effect Audio: " << effectAudio << effectAudioSize << endl
 		 << endl
 		 << "Particle Thumbnail: " << particleThumbnail << particleThumbnailSize << endl
 		 << "Particle Data: " << particleData << particleDataSize << endl
@@ -140,6 +151,12 @@ void initBuild(int argc, char** argv) {
 			auto item = arr["skin"]["i18n"][i];
 			skinCreate(SkinItem(-1, arr["skin"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
 				SRL<SkinThumbnail>(skinThumbnail, ""), SRL<SkinData>(skinData, ""), SRL<SkinTexture>(skinTexture, ""), item["description"].asString()), item["localization"].asString());
+		}
+
+	if (arr["effect"]["name"].asString() != "") for (int i = 0; i < arr["effect"]["i18n"].size(); i++) {
+			auto item = arr["effect"]["i18n"][i];
+			effectCreate(EffectItem(-1, arr["effect"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
+				SRL<EffectThumbnail>(effectThumbnail, ""), SRL<EffectData>(effectData, ""), SRL<EffectAudio>(effectAudio, ""), item["description"].asString()), item["localization"].asString());
 		}
 	
 	if (arr["particle"]["name"].asString() != "") for (int i = 0; i < arr["particle"]["i18n"].size(); i++) {
