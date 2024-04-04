@@ -142,26 +142,26 @@ void initBuild(int argc, char** argv) {
         auto tmp4 = particlesList("name = \"" + item["particle"].asString() + "\"", "");
         if (tmp4.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find particle \"" + item["particle"].asString() + "\""), exit(0);
         particle = tmp4[0];
-        engineCreate(EngineItem(-1, arr["engine"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(), 
+        enginesCreate(EngineItem(-1, arr["engine"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(), 
             skin, background, effect, particle, SRL<EngineThumbnail>(engineThumbnail, ""), SRL<EngineData>(engineData, ""), SRL<EngineTutorialData>(engineTutorialData, ""), SRL<EnginePreviewData>(enginePreviewData, ""), SRL<EngineWatchData>(engineWatchData, ""),
             SRL<EngineConfiguration>(engineConfiguration, ""), {}, SRL<EngineRom>("", ""), item["description"].asString()), item["localization"].asString());
     }
 
 	if (arr["skin"]["name"].asString() != "") for (int i = 0; i < arr["skin"]["i18n"].size(); i++) {
 			auto item = arr["skin"]["i18n"][i];
-			skinCreate(SkinItem(-1, arr["skin"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
+			skinsCreate(SkinItem(-1, arr["skin"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
 				SRL<SkinThumbnail>(skinThumbnail, ""), SRL<SkinData>(skinData, ""), SRL<SkinTexture>(skinTexture, ""), {}, item["description"].asString()), item["localization"].asString());
 		}
 
 	if (arr["effect"]["name"].asString() != "") for (int i = 0; i < arr["effect"]["i18n"].size(); i++) {
 			auto item = arr["effect"]["i18n"][i];
-			effectCreate(EffectItem(-1, arr["effect"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
+			effectsCreate(EffectItem(-1, arr["effect"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
 				SRL<EffectThumbnail>(effectThumbnail, ""), SRL<EffectData>(effectData, ""), SRL<EffectAudio>(effectAudio, ""), {}, item["description"].asString()), item["localization"].asString());
 		}
 	
 	if (arr["particle"]["name"].asString() != "") for (int i = 0; i < arr["particle"]["i18n"].size(); i++) {
 		auto item = arr["particle"]["i18n"][i];
-		particleCreate(ParticleItem(-1, arr["particle"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
+		particlesCreate(ParticleItem(-1, arr["particle"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
 			SRL<ParticleThumbnail>(particleThumbnail, ""), SRL<ParticleData>(particleData, ""), SRL<ParticleTexture>(particleTexture, ""), {}, item["description"].asString()), item["localization"].asString());
 	}
 }
