@@ -1,18 +1,37 @@
+#define MKDIR MKDIR_decrypted
 #include"../../main.cpp"
+#undef MKDIR
 #include<bits/stdc++.h>
 using namespace std;
 
-void copyFolder(string src, string dst) {
+void MKDIR(string path) {
+	filesystem::create_directories(path);
+}
+
+bool file_exists(string path) {
+	return filesystem::exists(path);
+}
+
+void copyFolder(string src, string dst, set<string> except, string tmp = "") {
     MKDIR(dst);
     for (auto& p: filesystem::directory_iterator(src)) {
-        if (filesystem::is_directory(p)) copyFolder(p.path().string(), dst + "/" + p.path().filename().string());
-        else filesystem::copy_file(p.path().string(), dst + "/" + p.path().filename().string());
+    	string path = tmp + "/" + p.path().filename().string();
+    	if (except.find(path) != except.end() && file_exists(dst + "/" + p.path().filename().string())) continue;
+        if (filesystem::is_directory(p)) copyFolder(p.path().string(), dst + "/" + p.path().filename().string(), except, path);
+        else 
+        	filesystem::copy_file(p.path().string(), dst + "/" + p.path().filename().string(), filesystem::copy_options::overwrite_existing),
+        	cout << "Copied file from \"" << src+ "/" + p.path().filename().string() << "\" to \"" << dst+ "/" + p.path().filename().string() << "\"" << endl;
     }
 }
 
 void initCustomEngine(char** argv) {
     string root_dir = string(argv[2]);
-    copyFolder("./plugins/libsonolush/source", root_dir);
+    copyFolder("./plugins/libsonolush/source", root_dir, {});
+}
+
+void updateCustomEngine(char** argv) {
+    string root_dir = string(argv[2]);
+    copyFolder("./plugins/libsonolush/source", root_dir, {"/main.cpp", "/package.json"});
 }
 
 string uploadFile(string path) {
@@ -44,6 +63,37 @@ string getFileSize(string path) {
 	else { size /= 1024.0; if (size < 2048) ss << fixed << setprecision(3) << "(" << size << "GB)";
 	else { size /= 1024.0; ss << fixed << setprecision(3) << "(" << size << "TB)"; }}}}
 	return ss.str();
+}
+
+void syncRepository() {
+	MKDIR("./plugins/libsonolush/source");
+	cout << "Fetching latest Sonolus.h..." << endl;
+	string json = get_url("https://api.github.com/repos/SonolusHaniwa/sonolus.h/releases/latest", 5);
+	Json::Value arr; json_decode(json, arr);
+	cout << "Latest version: " << arr["tag_name"].asString() << endl;
+	cout << "Downloading template.zip..." << endl;
+	string zipball = get_url(arr["zipball_url"].asString(), 5);
+	string zipPath = "./plugins/libsonolush/source/template.zip";
+	ofstream fout(zipPath);
+	fout.write(zipball.c_str(), zipball.size()); fout.close();
+	cout << "Downloaded template.zip for " << arr["tag_name"].asString() << getFileSize(zipPath) << endl;
+	vector<string> files = getFileListFromZip(zipPath);
+	for (int i = 0; i < files.size(); i++) {
+		if (files[i].back() == '/') continue;
+		string path = files[i];
+		path = path.substr(path.find("/") + 1);
+		if (path.find("/") != string::npos) {
+			string dir = path.substr(0, path.rfind("/"));
+			MKDIR("./plugins/libsonolush/source/" + dir);
+		}
+		string content = getFileFromZip(zipPath, files[i]);
+		ofstream fout("./plugins/libsonolush/source/" + path);
+		fout.write(content.c_str(), content.size());
+		fout.close();
+		cout << "Extracted \"" << path << "\" from template.zip" << endl;
+	}
+	filesystem::remove(zipPath);
+	cout << "Sync finished. Current Sonolus.h version: " << arr["tag_name"].asString() << endl;
 }
 
 void initBuild(int argc, char** argv) {
@@ -127,6 +177,24 @@ void initBuild(int argc, char** argv) {
 		 << "Particle Texture: " << particleTexture << particleTextureSize << endl
 		 << "===========================================" << endl;
 
+	if (arr["skin"]["name"].asString() != "") for (int i = 0; i < arr["skin"]["i18n"].size(); i++) {
+			auto item = arr["skin"]["i18n"][i];
+			skinsCreate(SkinItem(-1, arr["skin"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
+				SRL<SkinThumbnail>(skinThumbnail, ""), SRL<SkinData>(skinData, ""), SRL<SkinTexture>(skinTexture, ""), {}, item["description"].asString()), item["localization"].asString());
+		}
+
+	if (arr["effect"]["name"].asString() != "") for (int i = 0; i < arr["effect"]["i18n"].size(); i++) {
+			auto item = arr["effect"]["i18n"][i];
+			effectsCreate(EffectItem(-1, arr["effect"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
+				SRL<EffectThumbnail>(effectThumbnail, ""), SRL<EffectData>(effectData, ""), SRL<EffectAudio>(effectAudio, ""), {}, item["description"].asString()), item["localization"].asString());
+		}
+	
+	if (arr["particle"]["name"].asString() != "") for (int i = 0; i < arr["particle"]["i18n"].size(); i++) {
+		auto item = arr["particle"]["i18n"][i];
+		particlesCreate(ParticleItem(-1, arr["particle"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
+			SRL<ParticleThumbnail>(particleThumbnail, ""), SRL<ParticleData>(particleData, ""), SRL<ParticleTexture>(particleTexture, ""), {}, item["description"].asString()), item["localization"].asString());
+	}
+
     if (arr["engine"]["name"].asString() != "") for (int i = 0; i < arr["engine"]["i18n"].size(); i++) {
         auto item = arr["engine"]["i18n"][i];
         SkinItem skin; BackgroundItem background; EffectItem effect; ParticleItem particle;
@@ -146,24 +214,6 @@ void initBuild(int argc, char** argv) {
             skin, background, effect, particle, SRL<EngineThumbnail>(engineThumbnail, ""), SRL<EngineData>(engineData, ""), SRL<EngineTutorialData>(engineTutorialData, ""), SRL<EnginePreviewData>(enginePreviewData, ""), SRL<EngineWatchData>(engineWatchData, ""),
             SRL<EngineConfiguration>(engineConfiguration, ""), {}, SRL<EngineRom>("", ""), item["description"].asString()), item["localization"].asString());
     }
-
-	if (arr["skin"]["name"].asString() != "") for (int i = 0; i < arr["skin"]["i18n"].size(); i++) {
-			auto item = arr["skin"]["i18n"][i];
-			skinsCreate(SkinItem(-1, arr["skin"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
-				SRL<SkinThumbnail>(skinThumbnail, ""), SRL<SkinData>(skinData, ""), SRL<SkinTexture>(skinTexture, ""), {}, item["description"].asString()), item["localization"].asString());
-		}
-
-	if (arr["effect"]["name"].asString() != "") for (int i = 0; i < arr["effect"]["i18n"].size(); i++) {
-			auto item = arr["effect"]["i18n"][i];
-			effectsCreate(EffectItem(-1, arr["effect"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
-				SRL<EffectThumbnail>(effectThumbnail, ""), SRL<EffectData>(effectData, ""), SRL<EffectAudio>(effectAudio, ""), {}, item["description"].asString()), item["localization"].asString());
-		}
-	
-	if (arr["particle"]["name"].asString() != "") for (int i = 0; i < arr["particle"]["i18n"].size(); i++) {
-		auto item = arr["particle"]["i18n"][i];
-		particlesCreate(ParticleItem(-1, arr["particle"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
-			SRL<ParticleThumbnail>(particleThumbnail, ""), SRL<ParticleData>(particleData, ""), SRL<ParticleTexture>(particleTexture, ""), {}, item["description"].asString()), item["localization"].asString());
-	}
 }
 
 class PluginSonolush: public SonolusServerPlugin {
@@ -173,10 +223,10 @@ class PluginSonolush: public SonolusServerPlugin {
         return "Sonolus.h Plugin";
     }
     string onPluginDescription() const {
-        return "C++ based Developer Toolkit for Sonolus";
+        return "C++ Based Developer Toolkit for Sonolus";
     }
     string onPluginVersion() const {
-        return "0.8.0";
+        return "1.0.0";
     }
     string onPluginPlatformVersion() const {
         return sonolus_server_version;
@@ -192,12 +242,22 @@ class PluginSonolush: public SonolusServerPlugin {
     }
     vector<string> onPluginHelp(char** argv) const {
         return {
+            "Sonolus.h sync: " + string(argv[0]) + " synccpp",
+            "Sonolus.h update: " + string(argv[0]) + " updatecpp [name]",
             "Sonolus.h init: " + string(argv[0]) + " initcpp [name]",
             "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial/preview/watch> [name] [args]"
         };
     }
     void onPluginRunner(int argc, char** argv) const {
-        if (string(argv[1]) == "initcpp") {
+    	if (argc < 2) return;
+    	if (string(argv[1]) == "synccpp") {
+    		syncRepository();
+    		exit(0);
+    	} else if (string(argv[1]) == "updatecpp") {
+            if (argc < 3) return;
+            updateCustomEngine(argv);
+            exit(0);
+    	} else if (string(argv[1]) == "initcpp") {
             if (argc < 3) return;
             initCustomEngine(argv);
             exit(0);
