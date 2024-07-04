@@ -101,23 +101,42 @@ void initBuild(int argc, char** argv) {
     for (int i = 4; i < argc; i++) extendCommand += " " + string(argv[i]);
     stringstream command;
     command << "cd \"" << path << "\"";
-	command << " && echo [INFO] Compiling " << (type == "particle" ? "particle" : "engine") << " \"" << path << "\"...";
+	command << " && echo Compiling " << (type == "particle" ? "particle" : "engine") << " \"" << path << "\"...";
     command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng -lzip ";
 	if (type == "play") command << "-Dplay";
 	else if (type == "tutorial") command << "-Dtutorial";
 	else if (type == "preview") command << "-Dpreview";
 	else if (type == "watch") command << "-Dwatch";
+	else if (type == "all") ;
 	// else if (type == "particle") command << "-Dparticle";
 	else throw runtime_error("Unknown Compilation Type");
 	command << " " << extendCommand;
-	command << " && echo [INFO] Running scripts...";
+	command << " && echo Running scripts...";
     command << " && ./main";
+	if (type == "all") {
+		command.str("");
+		command << "cd \"" << path << "\"";
+		command << " && echo Compiling play mode of engine \"" << path << "\"...";
+		command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng -lzip -Dplay && ./main";
+		command << " && echo Compiling tutorial mode of engine \"" << path << "\"...";
+		command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng -lzip -Dtutorial && ./main";
+		command << " && echo Compiling preview mode of engine \"" << path << "\"...";
+		command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng -lzip -Dpreview && ./main";
+		command << " && echo Compiling watch mode of engine \"" << path << "\"...";
+		command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng -lzip -Dwatch && ./main";
+	}
     int res = system(command.str().c_str());
     if (res) exit(3);
 
     preload();
     string package_json = readFile((path + "/package.json").c_str());
     Json::Value arr; json_decode(package_json, arr);
+
+	if (arr["level"]["generate"].asString() != "") {
+		cout << "Generating LevelData..." << endl;
+		int res = system(("cd \"" + path + "\" && ./main " + arr["level"]["generate"].asString()).c_str());
+		if (res) exit(3);
+	}
 
     string engineData = uploadFile((path + "/dist/EngineData").c_str());
 	string engineDataSize = getFileSize((path + "/dist/EngineData").c_str());
@@ -141,6 +160,15 @@ void initBuild(int argc, char** argv) {
 	string skinTexture = uploadFile((path + "/dist/SkinTexture").c_str());
 	string skinTextureSize = getFileSize((path + "/dist/SkinTexture").c_str());
 
+	string backgroundThumbnail = engineThumbnail;
+	string backgroundThumbnailSize = engineThumbnailSize;
+	string backgroundData = uploadFile((path + "/dist/BackgroundData").c_str());
+	string backgroundDataSize = getFileSize((path + "/dist/BackgroundData").c_str());
+	string backgroundImage = uploadFile((path + "/dist/BackgroundImage").c_str());
+	string backgroundImageSize = getFileSize((path + "/dist/BackgroundImage").c_str());
+	string backgroundConfiguration = uploadFile((path + "/dist/BackgroundConfiguration").c_str());
+	string backgroundConfigurationSize = getFileSize((path + "/dist/BackgroundConfiguration").c_str());
+
     string effectThumbnail = engineThumbnail;
 	string effectThumbnailSize = engineThumbnailSize;
 	string effectData = uploadFile((path + "/dist/EffectData").c_str());
@@ -155,10 +183,20 @@ void initBuild(int argc, char** argv) {
 	string particleTexture = uploadFile((path + "/dist/ParticleTexture").c_str());
 	string particleTextureSize = getFileSize((path + "/dist/ParticleTexture").c_str());
 
+	string levelCover = engineThumbnail;
+	string levelCoverSize = engineThumbnailSize;
+	string levelBgm = uploadFile((path + "/dist/LevelBgm").c_str());
+	string levelBgmSize = getFileSize((path + "/dist/LevelBgm").c_str());
+	string levelData = uploadFile((path + "/dist/LevelData").c_str());
+	string levelDataSize = getFileSize((path + "/dist/LevelData").c_str());
+	string levelPreview = uploadFile((path + "/dist/LevelPreview").c_str());
+	string levelPreviewSize = getFileSize((path + "/dist/LevelPreview").c_str());
+
 	cout << "===========================================" << endl
 		 << "Collected Resource Info: " << endl
 		 << endl
 		 << "Engine Thumbnail: " << engineThumbnail << engineThumbnailSize << endl
+		 << "Engine Configuration: " << engineConfiguration << engineConfigurationSize << endl
 		 << "Engine Play Data: " << engineData << engineDataSize << endl
 		 << "Engine Tutorial Data: " << engineTutorialData << engineTutorialDataSize << endl
 		 << "Engine Preview Data: " << enginePreviewData << enginePreviewDataSize << endl
@@ -168,6 +206,11 @@ void initBuild(int argc, char** argv) {
 		 << "Skin Data: " << skinData << skinDataSize << endl
 		 << "Skin Texture: " << skinTexture << skinTextureSize << endl
 		 << endl
+		 << "Background Thumbnail: " << backgroundThumbnail << backgroundThumbnailSize << endl
+		 << "Background Data: " << backgroundData << backgroundDataSize << endl
+		 << "Background Image: " << backgroundImage << backgroundImageSize << endl
+		 << "Background Configuration: " << backgroundConfiguration << backgroundConfigurationSize << endl
+		 << endl
 		 << "Effect Thumbnail: " << effectThumbnail << effectThumbnailSize << endl
 		 << "Effect Data: " << effectData << effectDataSize << endl
 		 << "Effect Audio: " << effectAudio << effectAudioSize << endl
@@ -175,12 +218,23 @@ void initBuild(int argc, char** argv) {
 		 << "Particle Thumbnail: " << particleThumbnail << particleThumbnailSize << endl
 		 << "Particle Data: " << particleData << particleDataSize << endl
 		 << "Particle Texture: " << particleTexture << particleTextureSize << endl
+		 << endl
+		 << "Level Cover: " << levelCover << levelCoverSize << endl
+		 << "Level Bgm: " << levelBgm << levelBgmSize << endl
+		 << "Level Data: " << levelData << levelDataSize << endl
+		 << "Level Preview: " << levelPreview << levelPreviewSize << endl
 		 << "===========================================" << endl;
 
 	if (arr["skin"]["name"].asString() != "") for (int i = 0; i < arr["skin"]["i18n"].size(); i++) {
 			auto item = arr["skin"]["i18n"][i];
 			skinsCreate(SkinItem(-1, arr["skin"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
 				SRL<SkinThumbnail>(skinThumbnail, ""), SRL<SkinData>(skinData, ""), SRL<SkinTexture>(skinTexture, ""), {}, item["description"].asString()), item["localization"].asString());
+		}
+	
+	if (arr["background"]["name"].asString() != "") for (int i = 0; i < arr["background"]["i18n"].size(); i++) {
+			auto item = arr["background"]["i18n"][i];
+			backgroundsCreate(BackgroundItem(-1, arr["background"]["name"].asString(), item["title"].asString(), item["subtitle"].asString(), item["author"].asString(),
+				SRL<BackgroundThumbnail>(backgroundThumbnail, ""), SRL<BackgroundData>(backgroundData, ""), SRL<BackgroundImage>(backgroundImage, ""), SRL<BackgroundConfiguration>(backgroundConfiguration, ""), {}, item["description"].asString()), item["localization"].asString());
 		}
 
 	if (arr["effect"]["name"].asString() != "") for (int i = 0; i < arr["effect"]["i18n"].size(); i++) {
@@ -214,6 +268,40 @@ void initBuild(int argc, char** argv) {
             skin, background, effect, particle, SRL<EngineThumbnail>(engineThumbnail, ""), SRL<EngineData>(engineData, ""), SRL<EngineTutorialData>(engineTutorialData, ""), SRL<EnginePreviewData>(enginePreviewData, ""), SRL<EngineWatchData>(engineWatchData, ""),
             SRL<EngineConfiguration>(engineConfiguration, ""), {}, SRL<EngineRom>("", ""), item["description"].asString()), item["localization"].asString());
     }
+
+	if (arr["level"]["name"].asString() != "" && arr["level"]["generate"].asString() != "") for (int i = 0; i < arr["level"]["i18n"].size(); i++) {
+		auto item = arr["level"]["i18n"][i];
+		EngineItem engine; UseItem<SkinItem> skin; UseItem<BackgroundItem> background; UseItem<EffectItem> effect; UseItem<ParticleItem> particle;
+		auto tmp = enginesList("name = \"" + item["engine"].asString() + "\"", "");
+		if (tmp.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find engine \"" + item["engine"].asString() + "\""), exit(0);
+		engine = tmp[0];
+		if (item["skin"].asString() == "") skin.useDefault = true;
+		else {
+			auto tmp2 = skinsList("name = \"" + item["skin"].asString() + "\"", "");
+			if (tmp2.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find skin \"" + item["skin"].asString() + "\""), exit(0);
+			skin.item = tmp2[0]; skin.useDefault = false;
+		}
+		if (item["background"].asString() == "") background.useDefault = true;
+		else {
+			auto tmp3 = backgroundsList("name = \"" + item["background"].asString() + "\"", "");
+			if (tmp3.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find background \"" + item["background"].asString() + "\""), exit(0);
+			background.item = tmp3[0]; background.useDefault = false;
+		}
+		if (item["effect"].asString() == "") effect.useDefault = true;
+		else {
+			auto tmp4 = effectsList("name = \"" + item["effect"].asString() + "\"", "");
+			if (tmp4.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find effect \"" + item["effect"].asString() + "\""), exit(0);
+			effect.item = tmp4[0]; effect.useDefault = false;
+		}
+		if (item["particle"].asString() == "") particle.useDefault = true;
+		else {
+			auto tmp5 = particlesList("name = \"" + item["particle"].asString() + "\"", "");
+			if (tmp5.size() == 0) writeLog(LOG_LEVEL_ERROR, "Failed to find particle \"" + item["particle"].asString() + "\""), exit(0);
+			particle.item = tmp5[0]; particle.useDefault = false;
+		}
+		levelsCreate(LevelItem(-1, arr["level"]["name"].asString(), item["rating"].asInt(), item["title"].asString(), item["artists"].asString(), item["author"].asString(), engine, skin, background, effect, particle,
+			SRL<LevelCover>(levelCover, ""), SRL<LevelBgm>(levelBgm, ""), SRL<LevelData>(levelData, ""), SRL<LevelPreview>(levelPreview, ""), {}, item["description"].asString()), item["localization"].asString());
+	}
 }
 
 class PluginSonolush: public SonolusServerPlugin {
@@ -245,7 +333,7 @@ class PluginSonolush: public SonolusServerPlugin {
             "Sonolus.h sync: " + string(argv[0]) + " synccpp",
             "Sonolus.h update: " + string(argv[0]) + " updatecpp [name]",
             "Sonolus.h init: " + string(argv[0]) + " initcpp [name]",
-            "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial/preview/watch> [name] [args]"
+            "Sonolus.h build: " + string(argv[0]) + " buildcpp <play/tutorial/preview/watch/all> [name] [args]"
         };
     }
     void onPluginRunner(int argc, char** argv) const {
