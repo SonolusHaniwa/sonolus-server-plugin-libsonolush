@@ -123,7 +123,7 @@ void initBuild(int argc, char** argv) {
 		command.str("");
 		command << "cd \"" << path << "\"";
 		command << " && echo Interpreting your code...";
-		command << " && ../plugins/libsonolush/source/compiler/main main.cpp .sonolus/main";
+		command << " && ../plugins/libsonolush/source/compiler/main main.cpp .sonolus";
 		command << " && echo Compiling play mode of engine \"" << path << "\"...";
 		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip -Dplay && ./main";
 		command << " && echo Compiling tutorial mode of engine \"" << path << "\"...";
