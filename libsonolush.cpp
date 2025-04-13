@@ -26,12 +26,16 @@ void copyFolder(string src, string dst, set<string> except, string tmp = "") {
 
 void initCustomEngine(char** argv) {
     string root_dir = string(argv[2]);
-    copyFolder("./plugins/libsonolush/source", root_dir, {});
+	MKDIR(root_dir);
+	MKDIR(root_dir + "/sonolus");
+	filesystem::copy_file("./plugins/libsonolush/source/sonolus.h", root_dir + "/sonolus/sonolus.h", filesystem::copy_options::overwrite_existing);
+	filesystem::copy_file("./plugins/libsonolush/source/main.cpp", root_dir + "/main.cpp", filesystem::copy_options::overwrite_existing);
 }
 
 void updateCustomEngine(char** argv) {
     string root_dir = string(argv[2]);
-    copyFolder("./plugins/libsonolush/source", root_dir, {"/main.cpp", "/package.json"});
+	MKDIR(root_dir + "/sonolus");
+	filesystem::copy_file("./plugins/libsonolush/source/sonolus.h", root_dir + "/sonolus/sonolus.h", filesystem::copy_options::overwrite_existing);
 }
 
 string uploadFile(string path) {
@@ -46,7 +50,7 @@ string uploadFile(string path) {
     stringstream buffer;
     for (int i = 0; i < 20; i++)
         buffer << hex << setw(2) << setfill('0') << int(fileSha1[i]);
-    ofstream fout(("./data/" + buffer.str()).c_str());
+    ofstream fout(("./data/" + buffer.str()).c_str(), ios::binary);
     fout.write(filePointerBeg, len); fout.close();
     free(filePointerBeg); free(fileSha1);
     return buffer.str();
@@ -68,13 +72,13 @@ string getFileSize(string path) {
 void syncRepository() {
 	MKDIR("./plugins/libsonolush/source");
 	cout << "Fetching latest Sonolus.h..." << endl;
-	string json = get_url("https://api.github.com/repos/SonolusHaniwa/sonolus.h/releases/latest", 5);
+	string json = get_url("https://cors.littleyang.icu/https://api.github.com/repos/SonolusHaniwa/sonolus.h/releases/latest", 5);
 	Json::Value arr; json_decode(json, arr);
 	cout << "Latest version: " << arr["tag_name"].asString() << endl;
 	cout << "Downloading template.zip..." << endl;
-	string zipball = get_url(arr["zipball_url"].asString(), 5);
+	string zipball = get_url("https://cors.littleyang.icu/" + arr["zipball_url"].asString(), 5);
 	string zipPath = "./plugins/libsonolush/source/template.zip";
-	ofstream fout(zipPath);
+	ofstream fout(zipPath, ios::binary);
 	fout.write(zipball.c_str(), zipball.size()); fout.close();
 	cout << "Downloaded template.zip for " << arr["tag_name"].asString() << getFileSize(zipPath) << endl;
 	vector<string> files = getFileListFromZip(zipPath);
@@ -87,12 +91,14 @@ void syncRepository() {
 			MKDIR("./plugins/libsonolush/source/" + dir);
 		}
 		string content = getFileFromZip(zipPath, files[i]);
-		ofstream fout("./plugins/libsonolush/source/" + path);
+		ofstream fout("./plugins/libsonolush/source/" + path, ios::binary);
 		fout.write(content.c_str(), content.size());
 		fout.close();
 		cout << "Extracted \"" << path << "\" from template.zip" << endl;
 	}
 	filesystem::remove(zipPath);
+	cout << "Compiling compiler..." << endl;
+	system("g++ ./plugins/libsonolush/source/compiler/main.cpp -o ./plugins/libsonolush/source/compiler/main -O3 -g -w");
 	cout << "Sync finished. Current Sonolus.h version: " << arr["tag_name"].asString() << endl;
 }
 
@@ -102,7 +108,7 @@ void initBuild(int argc, char** argv) {
     stringstream command;
     command << "cd \"" << path << "\"";
 	command << " && echo Compiling " << (type == "particle" ? "particle" : "engine") << " \"" << path << "\"...";
-    command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng -lzip ";
+    command << " && mkdir .sonolus -p && ../plugins/libsonolush/source/compiler/main main.cpp .sonolus && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip ";
 	if (type == "play") command << "-Dplay";
 	else if (type == "tutorial") command << "-Dtutorial";
 	else if (type == "preview") command << "-Dpreview";
@@ -116,14 +122,16 @@ void initBuild(int argc, char** argv) {
 	if (type == "all") {
 		command.str("");
 		command << "cd \"" << path << "\"";
+		command << " && echo Interpreting your code...";
+		command << " && ../plugins/libsonolush/source/compiler/main main.cpp .sonolus/main";
 		command << " && echo Compiling play mode of engine \"" << path << "\"...";
-		command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng -lzip -Dplay && ./main";
+		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip -Dplay && ./main";
 		command << " && echo Compiling tutorial mode of engine \"" << path << "\"...";
-		command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng -lzip -Dtutorial && ./main";
+		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip -Dtutorial && ./main";
 		command << " && echo Compiling preview mode of engine \"" << path << "\"...";
-		command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng -lzip -Dpreview && ./main";
+		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip -Dpreview && ./main";
 		command << " && echo Compiling watch mode of engine \"" << path << "\"...";
-		command << " && g++ main.cpp -o main -ljsoncpp -lssl -lcrypto -lz -lpng -lzip -Dwatch && ./main";
+		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip -Dwatch && ./main";
 	}
     int res = system(command.str().c_str());
     if (res) exit(3);
@@ -138,8 +146,8 @@ void initBuild(int argc, char** argv) {
 		if (res) exit(3);
 	}
 
-    string engineData = uploadFile((path + "/dist/EngineData").c_str());
-	string engineDataSize = getFileSize((path + "/dist/EngineData").c_str());
+    string engineData = uploadFile((path + "/dist/EnginePlayData").c_str());
+	string engineDataSize = getFileSize((path + "/dist/EnginePlayData").c_str());
     string engineConfiguration = uploadFile((path + "/dist/EngineConfiguration").c_str());
 	string engineConfigurationSize = getFileSize((path + "/dist/EngineConfiguration").c_str());
 	string engineTutorialData = uploadFile((path + "/dist/EngineTutorialData").c_str());
