@@ -96,7 +96,6 @@ void syncRepository() {
 		fout.close();
 		cout << "Extracted \"" << path << "\" from template.zip" << endl;
 	}
-	filesystem::remove(zipPath);
 	cout << "Compiling compiler..." << endl;
 	system("g++ ./plugins/libsonolush/source/compiler/main.cpp -o ./plugins/libsonolush/source/compiler/main -O3 -g -w");
 	cout << "Sync finished. Current Sonolus.h version: " << arr["tag_name"].asString() << endl;
@@ -108,7 +107,11 @@ void initBuild(int argc, char** argv) {
     stringstream command;
     command << "cd \"" << path << "\"";
 	command << " && echo Compiling " << (type == "particle" ? "particle" : "engine") << " \"" << path << "\"...";
+	#ifdef __linux__
     command << " && mkdir .sonolus -p && ../plugins/libsonolush/source/compiler/main main.cpp .sonolus && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip ";
+	#else
+    command << " && (if not exist .sonolus mkdir .sonolus) && \"../plugins/libsonolush/source/compiler/main\" main.cpp .sonolus && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip ";
+	#endif
 	if (type == "play") command << "-Dplay";
 	else if (type == "tutorial") command << "-Dtutorial";
 	else if (type == "preview") command << "-Dpreview";
@@ -123,7 +126,13 @@ void initBuild(int argc, char** argv) {
 		command.str("");
 		command << "cd \"" << path << "\"";
 		command << " && echo Interpreting your code...";
+		#ifdef __linux__
+		command << " && mkdir .sonolus -p";
 		command << " && ../plugins/libsonolush/source/compiler/main main.cpp .sonolus";
+		#else
+		command << " && (if not exist .sonolus mkdir .sonolus)";
+		command << " && \"../plugins/libsonolush/source/compiler/main\" main.cpp .sonolus";
+		#endif
 		command << " && echo Compiling play mode of engine \"" << path << "\"...";
 		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip -Dplay && ./main";
 		command << " && echo Compiling tutorial mode of engine \"" << path << "\"...";
