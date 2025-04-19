@@ -12,6 +12,19 @@ bool file_exists(string path) {
 	return filesystem::exists(path);
 }
 
+void copyFile(string src, string dst) {
+	ifstream fin; fin.open(src);
+	ofstream fout; fout.open(dst);
+	fin.seekg(0, ios::end);
+	int len = fin.tellg();
+	if (len == -1) return;
+	fin.seekg(0, ios::beg);
+	char* filePointerBeg = new char[len];
+	fin.read(filePointerBeg, len);
+	fout.write(filePointerBeg, len);
+	fin.close(); fout.close();
+}
+
 void copyFolder(string src, string dst, set<string> except, string tmp = "") {
     MKDIR(dst);
     for (auto& p: filesystem::directory_iterator(src)) {
@@ -19,7 +32,7 @@ void copyFolder(string src, string dst, set<string> except, string tmp = "") {
     	if (except.find(path) != except.end() && file_exists(dst + "/" + p.path().filename().string())) continue;
         if (filesystem::is_directory(p)) copyFolder(p.path().string(), dst + "/" + p.path().filename().string(), except, path);
         else 
-        	filesystem::copy_file(p.path().string(), dst + "/" + p.path().filename().string(), filesystem::copy_options::overwrite_existing),
+        	copyFile(p.path().string(), dst + "/" + p.path().filename().string()),
         	cout << "Copied file from \"" << src+ "/" + p.path().filename().string() << "\" to \"" << dst+ "/" + p.path().filename().string() << "\"" << endl;
     }
 }
@@ -28,14 +41,20 @@ void initCustomEngine(char** argv) {
     string root_dir = string(argv[2]);
 	MKDIR(root_dir);
 	MKDIR(root_dir + "/sonolus");
-	filesystem::copy_file("./plugins/libsonolush/source/sonolus.h", root_dir + "/sonolus/sonolus.h", filesystem::copy_options::overwrite_existing);
-	filesystem::copy_file("./plugins/libsonolush/source/main.cpp", root_dir + "/main.cpp", filesystem::copy_options::overwrite_existing);
+	copyFile("./plugins/libsonolush/source/sonolus.h", root_dir + "/sonolus/sonolus.h");
+	copyFile("./plugins/libsonolush/source/main.cpp", root_dir + "/main.cpp");
+	#ifndef __linux__
+	copyFolder("./plugins/libsonolush/source/lib", root_dir, {});
+	#endif
 }
 
 void updateCustomEngine(char** argv) {
     string root_dir = string(argv[2]);
 	MKDIR(root_dir + "/sonolus");
-	filesystem::copy_file("./plugins/libsonolush/source/sonolus.h", root_dir + "/sonolus/sonolus.h", filesystem::copy_options::overwrite_existing);
+	copyFile("./plugins/libsonolush/source/sonolus.h", root_dir + "/sonolus/sonolus.h");
+	#ifndef __linux__
+	copyFolder("./plugins/libsonolush/source/lib", root_dir, {});
+	#endif
 }
 
 string uploadFile(string path) {
@@ -108,9 +127,13 @@ void initBuild(int argc, char** argv) {
     command << "cd \"" << path << "\"";
 	command << " && echo Compiling " << (type == "particle" ? "particle" : "engine") << " \"" << path << "\"...";
 	#ifdef __linux__
-    command << " && mkdir .sonolus -p && ../plugins/libsonolush/source/compiler/main main.cpp .sonolus && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip ";
+    command << " && mkdir .sonolus -p";
+	command << " && ../plugins/libsonolush/source/compiler/main main.cpp .sonolus";
+	command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip ";
 	#else
-    command << " && (if not exist .sonolus mkdir .sonolus) && \"../plugins/libsonolush/source/compiler/main\" main.cpp .sonolus && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip ";
+    command << " && (if not exist .sonolus mkdir .sonolus)";
+	command << " && \"../plugins/libsonolush/source/compiler/main\" main.cpp .sonolus";
+	command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljson -ljsoncpp -lz -lzdll -lpng -lpngdll -lzip -lzipdll ";
 	#endif
 	if (type == "play") command << "-Dplay";
 	else if (type == "tutorial") command << "-Dtutorial";
@@ -129,10 +152,6 @@ void initBuild(int argc, char** argv) {
 		#ifdef __linux__
 		command << " && mkdir .sonolus -p";
 		command << " && ../plugins/libsonolush/source/compiler/main main.cpp .sonolus";
-		#else
-		command << " && (if not exist .sonolus mkdir .sonolus)";
-		command << " && \"../plugins/libsonolush/source/compiler/main\" main.cpp .sonolus";
-		#endif
 		command << " && echo Compiling play mode of engine \"" << path << "\"...";
 		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip -Dplay && ./main";
 		command << " && echo Compiling tutorial mode of engine \"" << path << "\"...";
@@ -141,6 +160,18 @@ void initBuild(int argc, char** argv) {
 		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip -Dpreview && ./main";
 		command << " && echo Compiling watch mode of engine \"" << path << "\"...";
 		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljsoncpp -lz -lpng -lzip -Dwatch && ./main";
+		#else
+		command << " && (if not exist .sonolus mkdir .sonolus)";
+		command << " && \"../plugins/libsonolush/source/compiler/main\" main.cpp .sonolus";
+		command << " && echo Compiling play mode of engine \"" << path << "\"...";
+		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljson -ljsoncpp -lz -lzdll -lpng -lpngdll -lzip -lzipdll -Dplay && ./main";
+		command << " && echo Compiling tutorial mode of engine \"" << path << "\"...";
+		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljson -ljsoncpp -lz -lzdll -lpng -lpngdll -lzip -lzipdll -Dtutorial && ./main";
+		command << " && echo Compiling preview mode of engine \"" << path << "\"...";
+		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljson -ljsoncpp -lz -lzdll -lpng -lpngdll -lzip -lzipdll -Dpreview && ./main";
+		command << " && echo Compiling watch mode of engine \"" << path << "\"...";
+		command << " && g++ .sonolus/main.cpp -o main -g -w -fpermissive -ljson -ljsoncpp -lz -lzdll -lpng -lpngdll -lzip -lzipdll -Dwatch && ./main";
+		#endif
 	}
     int res = system(command.str().c_str());
     if (res) exit(3);
