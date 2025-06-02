@@ -91,11 +91,11 @@ string getFileSize(string path) {
 void syncRepository() {
 	MKDIR("./plugins/libsonolush/source");
 	cout << "Fetching latest Sonolus.h..." << endl;
-	string json = get_url("https://cors.littleyang.icu/https://api.github.com/repos/SonolusHaniwa/sonolus.h/releases/latest", 5);
+	string json = get_url("https://cors.littleyang.com.cn/https://api.github.com/repos/SonolusHaniwa/sonolus.h/releases/latest", 5);
 	Json::Value arr; json_decode(json, arr);
 	cout << "Latest version: " << arr["tag_name"].asString() << endl;
 	cout << "Downloading template.zip..." << endl;
-	string zipball = get_url("https://cors.littleyang.icu/" + arr["zipball_url"].asString(), 5);
+	string zipball = get_url("https://cors.littleyang.com.cn/" + arr["zipball_url"].asString(), 5);
 	string zipPath = "./plugins/libsonolush/source/template.zip";
 	ofstream fout(zipPath, ios::binary);
 	fout.write(zipball.c_str(), zipball.size()); fout.close();
